@@ -3,8 +3,10 @@ import pandas as pd
 import yfinance as yf
 import os
 import matplotlib.pyplot as plt
+import sys
 
-ticker_symbol = "^GSPC"  # ticker symbol
+ticker = sys.argv[1]
+ticker_symbol = f"^{ticker}"  # ticker symbol
 filename = "data.csv"  # CSV file to save the data
 file = "sp500"
 
@@ -22,7 +24,7 @@ del stock["Dividends"]
 del stock["Stock Splits"]
 
 # Plot the data
-print("1")
+# print("1")
 stock["Tomorrow"] = stock["Close"].shift(-1)
 
 stock["Target"] = (stock["Tomorrow"] > stock["Close"]).astype(int)
@@ -31,7 +33,7 @@ stock = stock.loc["1990-01-03":].copy()
 
 
 #TRAINING THE MODEL
-print("2")
+# print("2")
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import precision_score
 
@@ -63,7 +65,7 @@ plt.legend(['Actual', 'Predicted'])
 
 
 #BACK TESTING
-print("3")
+# print("3")
 def predict(train, test, predictors, model):
     model.fit(train[predictors], train["Target"])
     preds = model.predict(test[predictors])
@@ -89,11 +91,11 @@ predictions = backtest(stock, model, predictors)
 # print("Predictions count:\n", predictions_counts)
 
 precision = precision_score(predictions["Target"], predictions["Predictions"])
-print(precision)
+print("Precision score after back testing: ", precision)
 # print(predictions["Predictions"].value_counts())
 
 #ADDING ADDITIONAL PREDICTORS TO IMPROVE MODEL (MOVING AVERAGES)
-print("4")
+# print("4")
 horizons = [2,5,60,250,1000]
 new_predictors = []
 
@@ -109,7 +111,26 @@ for horizon in horizons:
     new_predictors+= [ratio_column, trend_column]
 
 stock = stock.dropna(subset=stock.columns[stock.columns != "Tomorrow"])
+stock.index.name = ""
 pd.set_option('display.max_columns', None)
 
+
+#BACKTESTING WITH NEW PREDICTORS
+model = RandomForestClassifier(n_estimators=200, min_samples_split=50, random_state=1)
+
+def predict(train, test, predictors, model):
+    model.fit(train[predictors], train["Target"])
+    preds = model.predict_proba(test[predictors])[:,1]
+    preds[preds >=.6] = 1
+    preds[preds <.6] = 0
+    preds = pd.Series(preds, index=test.index, name="Predictions")
+    combined = pd.concat([test["Target"], preds], axis=1)
+    return combined
+predictions = backtest(stock, model, new_predictors)
+# predictions["Predictions"].value_counts()
+
+precision = precision_score(predictions["Target"], predictions["Predictions"])
+
+print("Precision score after considering the moving averages: ", precision)
 
 print(stock)
