@@ -5,8 +5,8 @@ import os
 import matplotlib.pyplot as plt
 import sys
 
-ticker = sys.argv[1]
-# ticker = "MSFT"
+# ticker = sys.argv[1]
+ticker = "MSFT"
 ticker_symbol = f"{ticker}"  # ticker symbol
 filename = "data.csv"  # CSV file to save the data
 file = "sp500"
@@ -87,6 +87,8 @@ def backtest(data, model, predictors, start=2500, step=250):
     
     return pd.concat(all_predictions)
 
+# ...
+
 predictions = backtest(stock, model, predictors)
 predictions_counts = predictions["Predictions"].value_counts()
 
@@ -94,7 +96,10 @@ precision = precision_score(predictions["Target"], predictions["Predictions"])
 # print("Precision score after back testing: ", precision)
 # print("Predictions count:", predictions_counts)
 print(precision)
-# print(predictions["Predictions"].value_counts())
+print(predictions_counts)
+
+
+
 
 #ADDING ADDITIONAL PREDICTORS TO IMPROVE MODEL (MOVING AVERAGES)
 # print("4")
@@ -129,10 +134,10 @@ def predict(train, test, predictors, model):
     combined = pd.concat([test["Target"], preds], axis=1)
     return combined
 predictions = backtest(stock, model, new_predictors)
-# predictions["Predictions"].value_counts()
-
+predictions_counts = predictions["Predictions"].value_counts()
 precision = precision_score(predictions["Target"], predictions["Predictions"])
 
 # print("Precision score after considering the moving averages: ", precision)
 print(precision)
+print(predictions_counts)
 
